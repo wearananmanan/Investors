@@ -131,10 +131,20 @@
     </div>
 
     <div class="stat-grid">
+      <div class="stat-card accent-blue"><div class="lbl">Total Deposited</div><div class="val" id="statDeposited">—</div></div>
+      <div class="stat-card"><div class="lbl">Uninvested Balance</div><div class="val" id="statBalance">—</div></div>
       <div class="stat-card accent-blue"><div class="lbl">Total Invested</div><div class="val" id="statInvested">—</div></div>
       <div class="stat-card"><div class="lbl">Realized Profit</div><div class="val" id="statProfit">—</div></div>
       <div class="stat-card"><div class="lbl">ROI</div><div class="val" id="statRoi">—</div></div>
       <div class="stat-card"><div class="lbl">Active Positions</div><div class="val" id="statActive">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">My Deposits</div>
+      <table>
+        <thead><tr><th>Date</th><th>Amount</th><th>Note</th></tr></thead>
+        <tbody id="myDepositsBody"></tbody>
+      </table>
     </div>
 
     <div class="card">
@@ -179,8 +189,13 @@ const fs = getFirestore(fbApp, "default");
 
 function fmt(n){ return 'LKR ' + Number(n||0).toLocaleString('en-LK', {maximumFractionDigits:0}); }
 
-let db = { investors:[], products:[], investments:[] };
-let readyFlags = { investors:false, products:false, investments:false };
+/* NOTE: 'deposits' collection added here so the investor portal can show
+   cash the investor has added even before the admin allocates it into a
+   product. Previously this file never listened to 'deposits' at all, so
+   deposited-but-unallocated money was invisible on this page even though
+   it showed correctly in the Admin panel. */
+let db = { investors:[], products:[], investments:[], deposits:[] };
+let readyFlags = { investors:false, products:false, investments:false, deposits:false };
 let currentInvestor = null;
 let pendingLoginCheck = false;
 
@@ -202,10 +217,16 @@ function snapshotAll(){
     readyFlags.investments = true;
     onDataChanged();
   }, err=>console.error('investments listener error', err));
+
+  onSnapshot(collection(fs,'deposits'), snap=>{
+    db.deposits = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    readyFlags.deposits = true;
+    onDataChanged();
+  }, err=>console.error('deposits listener error', err));
 }
 
 function onDataChanged(){
-  if(!(readyFlags.investors && readyFlags.products && readyFlags.investments)) return;
+  if(!(readyFlags.investors && readyFlags.products && readyFlags.investments && readyFlags.deposits)) return;
   if(pendingLoginCheck){ pendingLoginCheck = false; resumeSession(); }
   if(currentInvestor){
     // keep currentInvestor object fresh in case admin edited their details
@@ -221,6 +242,12 @@ function productFunded(productId){
 }
 function investorTotalInvested(investorId){
   return db.investments.filter(i=>i.investorId===investorId).reduce((s,i)=>s+Number(i.amount||0),0);
+}
+function investorTotalDeposited(investorId){
+  return db.deposits.filter(d=>d.investorId===investorId).reduce((s,d)=>s+Number(d.amount||0),0);
+}
+function investorBalance(investorId){
+  return investorTotalDeposited(investorId) - investorTotalInvested(investorId);
 }
 function investmentProfit(inv){
   const p = db.products.find(pr=>pr.id===inv.productId);
@@ -306,10 +333,13 @@ function renderAll(){
   if(!currentInvestor) return;
   renderTicker();
 
+  const deposited = investorTotalDeposited(currentInvestor.id);
   const invested = investorTotalInvested(currentInvestor.id);
+  const balance = deposited - invested;
   const profit = investorRealizedProfit(currentInvestor.id);
   const roi = invested>0 ? (profit/invested)*100 : 0;
   const myInvestments = db.investments.filter(i=>i.investorId===currentInvestor.id);
+  const myDeposits = [...db.deposits.filter(d=>d.investorId===currentInvestor.id)].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
   const activeCount = myInvestments.filter(inv=>{
     const p = db.products.find(pr=>pr.id===inv.productId);
     return p && p.status==='open';
@@ -323,10 +353,21 @@ function renderAll(){
   const myRank = ranked.findIndex(r=>r.id===currentInvestor.id) + 1;
   document.getElementById('meRank').textContent = myRank>0 ? '#'+myRank : '—';
 
+  document.getElementById('statDeposited').textContent = fmt(deposited);
+  document.getElementById('statBalance').innerHTML = `<span style="color:${balance>=0?'var(--green)':'var(--red)'}">${fmt(balance)}</span>`;
   document.getElementById('statInvested').textContent = fmt(invested);
   document.getElementById('statProfit').innerHTML = `<span style="color:${profit>=0?'var(--green)':'var(--red)'}">${fmt(profit)}</span>`;
   document.getElementById('statRoi').innerHTML = `<span style="color:${roi>=0?'var(--green)':'var(--red)'}">${roi.toFixed(1)}%</span>`;
   document.getElementById('statActive').textContent = activeCount;
+
+  const depBody = document.getElementById('myDepositsBody');
+  depBody.innerHTML = myDeposits.length ? myDeposits.map(d=>`
+    <tr>
+      <td class="mono muted">${d.date||'—'}</td>
+      <td class="mono">${fmt(d.amount)}</td>
+      <td class="muted">${d.note||'—'}</td>
+    </tr>
+  `).join('') : `<tr><td colspan="3" class="empty">No deposits recorded yet.</td></tr>`;
 
   const body = document.getElementById('myInvestmentsBody');
   body.innerHTML = myInvestments.length ? myInvestments.map(inv=>{
