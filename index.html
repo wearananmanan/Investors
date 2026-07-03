@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ANANMANAN // Trading Desk — Investor Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Syne:wght@500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --void:#060a10; --panel:#0d141c; --panel-2:#111b25; --line:#1c2b38;
+    --green:#00ffab; --green-dim:#00ffab33; --blue:#29d3ff; --amber:#ffb454; --red:#ff5470;
+    --text:#e8f4f2; --muted:#6b8299;
+    --font-display:'Orbitron',sans-serif; --font-body:'Syne',sans-serif; --font-mono:'JetBrains Mono',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--void);color:var(--text);font-family:var(--font-body);min-height:100vh;overflow-x:hidden;}
+  body::before{
+    content:'';position:fixed;inset:0;
+    background-image:linear-gradient(rgba(0,255,171,0.025) 1px, transparent 1px),linear-gradient(90deg, rgba(0,255,171,0.025) 1px, transparent 1px);
+    background-size:40px 40px;pointer-events:none;z-index:0;
+  }
+  ::-webkit-scrollbar{width:8px;height:8px;} ::-webkit-scrollbar-track{background:var(--void);} ::-webkit-scrollbar-thumb{background:var(--line);border-radius:4px;}
+
+  #loginScreen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;z-index:100;background:var(--void);}
+  .login-card{width:400px;max-width:90vw;background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--line);border-radius:16px;padding:40px 36px;position:relative;box-shadow:0 0 60px rgba(0,255,171,0.06);}
+  .login-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--green),var(--blue),transparent);}
+  .login-eyebrow{font-family:var(--font-mono);font-size:11px;letter-spacing:3px;color:var(--green);text-transform:uppercase;margin-bottom:8px;}
+  .login-title{font-family:var(--font-display);font-size:24px;font-weight:900;letter-spacing:1px;margin-bottom:8px;}
+  .login-sub{font-family:var(--font-mono);font-size:11.5px;color:var(--muted);margin-bottom:26px;line-height:1.6;}
+  .field{margin-bottom:18px;}
+  .field label{display:block;font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:8px;}
+  .field input{width:100%;background:var(--void);border:1px solid var(--line);border-radius:8px;padding:12px 14px;color:var(--text);font-family:var(--font-mono);font-size:14px;outline:none;transition:.2s;}
+  .field input:focus{border-color:var(--green);box-shadow:0 0 0 3px var(--green-dim);}
+  .btn{width:100%;padding:13px;border:none;border-radius:8px;font-family:var(--font-display);font-weight:700;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;background:linear-gradient(90deg,var(--green),var(--blue));color:#001410;transition:.15s;}
+  .btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px var(--green-dim);}
+  .login-error{color:var(--red);font-family:var(--font-mono);font-size:12px;margin-top:14px;min-height:16px;}
+
+  #app{display:none;position:relative;z-index:1;min-height:100vh;}
+  .ticker{background:var(--panel-2);border-bottom:1px solid var(--line);overflow:hidden;white-space:nowrap;height:36px;display:flex;align-items:center;}
+  .ticker-track{display:inline-block;padding-left:100%;animation:scroll-left 30s linear infinite;}
+  .ticker-track span{font-family:var(--font-mono);font-size:12px;margin-right:40px;color:var(--muted);}
+  .ticker-track span b{color:var(--text);}
+  .tick-up{color:var(--green)!important;} .tick-pending{color:var(--amber)!important;}
+  @keyframes scroll-left{0%{transform:translateX(0);}100%{transform:translateX(-100%);}}
+
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 32px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:12px;}
+  .brand{display:flex;align-items:center;gap:12px;}
+  .brand-mark{width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,var(--green),var(--blue));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;color:#001410;font-size:16px;}
+  .brand-text .t1{font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:1px;}
+  .brand-text .t2{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:2px;}
+  .logout-btn{cursor:pointer;color:var(--muted);font-family:var(--font-mono);font-size:11px;letter-spacing:1px;}
+  .logout-btn:hover{color:var(--red);}
+
+  .main{max-width:1100px;margin:0 auto;padding:30px 24px 60px;}
+
+  .id-card{
+    background:linear-gradient(135deg, var(--panel), var(--panel-2));
+    border:1px solid var(--line);border-radius:16px;padding:26px 28px;margin-bottom:24px;
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;position:relative;overflow:hidden;
+  }
+  .id-card::after{content:'';position:absolute;top:-40%;right:-10%;width:220px;height:220px;background:radial-gradient(circle,var(--green-dim),transparent 70%);}
+  .id-left .name{font-family:var(--font-display);font-size:22px;font-weight:700;}
+  .id-left .idno{font-family:var(--font-mono);color:var(--blue);font-size:13px;margin-top:4px;}
+  .id-left .meta{font-family:var(--font-mono);color:var(--muted);font-size:11.5px;margin-top:10px;}
+  .id-right{text-align:right;position:relative;z-index:1;}
+  .id-right .lbl{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;}
+  .id-right .rank{font-family:var(--font-display);font-size:30px;font-weight:900;color:var(--green);}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:24px;}
+  .stat-card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:20px;}
+  .stat-card .lbl{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;}
+  .stat-card .val{font-family:var(--font-display);font-size:24px;font-weight:700;}
+  .stat-card.accent-blue .val{color:var(--blue);}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:22px;margin-bottom:20px;}
+  .card-title{font-family:var(--font-display);font-size:14px;font-weight:700;letter-spacing:.5px;margin-bottom:16px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-family:var(--font-mono);font-size:10.5px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--line);}
+  td{padding:12px;border-bottom:1px solid var(--line);}
+  tr:last-child td{border-bottom:none;}
+  .mono{font-family:var(--font-mono);}
+  .badge{display:inline-block;padding:3px 10px;border-radius:20px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;font-weight:700;}
+  .badge-open{background:#ffb45422;color:var(--amber);border:1px solid #ffb45455;}
+  .badge-sold{background:#00ffab22;color:var(--green);border:1px solid #00ffab55;}
+  .progress{height:6px;border-radius:4px;background:var(--void);overflow:hidden;margin-top:8px;}
+  .progress-bar{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:4px;}
+  .empty{padding:40px 20px;text-align:center;color:var(--muted);font-family:var(--font-mono);font-size:12.5px;}
+  .rank-badge{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:900;font-size:11px;}
+  .rank-1{background:linear-gradient(135deg,#ffd76a,#ff9f45);color:#3a1e00;} .rank-2{background:linear-gradient(135deg,#d7e3f0,#9fb4c9);color:#1a2733;}
+  .rank-3{background:linear-gradient(135deg,#e0a374,#b76a3f);color:#2a1400;} .rank-n{background:var(--void);border:1px solid var(--line);color:var(--muted);}
+  .you{outline:1px solid var(--green);border-radius:6px;}
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <div class="login-card">
+    <div class="login-eyebrow">ANANMANAN // TRADING DESK</div>
+    <div class="login-title">Investor Portal</div>
+    <div class="login-sub">Log in with the Investor ID given to you.<br>Password = the last 5 digits of your ID.</div>
+    <div class="field"><label>Investor ID</label><input type="text" id="loginId" placeholder="e.g. 200015801234"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPass" placeholder="last 5 digits of your ID"></div>
+    <button class="btn" onclick="tryLogin()">Log In</button>
+    <div class="login-error" id="loginErr"></div>
+  </div>
+</div>
+
+<div id="app">
+  <div class="ticker"><div class="ticker-track" id="tickerTrack"></div></div>
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">AM</div>
+      <div class="brand-text"><div class="t1">ANANMANAN</div><div class="t2">INVESTOR TRADING DESK</div></div>
+    </div>
+    <div class="logout-btn" onclick="logout()">⏻ SIGN OUT</div>
+  </div>
+
+  <div class="main">
+    <div class="id-card">
+      <div class="id-left">
+        <div class="name" id="meName">—</div>
+        <div class="idno" id="meId">—</div>
+        <div class="meta" id="meMeta">—</div>
+      </div>
+      <div class="id-right">
+        <div class="lbl">Leaderboard Rank</div>
+        <div class="rank" id="meRank">—</div>
+      </div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card accent-blue"><div class="lbl">Total Invested</div><div class="val" id="statInvested">—</div></div>
+      <div class="stat-card"><div class="lbl">Realized Profit</div><div class="val" id="statProfit">—</div></div>
+      <div class="stat-card"><div class="lbl">ROI</div><div class="val" id="statRoi">—</div></div>
+      <div class="stat-card"><div class="lbl">Active Positions</div><div class="val" id="statActive">—</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">My Investments</div>
+      <table>
+        <thead><tr><th>Product</th><th>Invested</th><th>Status</th><th>Return</th><th>Profit</th></tr></thead>
+        <tbody id="myInvestmentsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Leaderboard</div>
+      <table>
+        <thead><tr><th>Rank</th><th>Investor</th><th>Invested</th><th>Profit</th><th>ROI</th></tr></thead>
+        <tbody id="leaderboardBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+/* ================= FIREBASE / FIRESTORE DATA LAYER ================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAPvHO15BUqF4s_ur7bkV-Kn5GVyzVFMoE",
+  authDomain: "ananmanan-investors.firebaseapp.com",
+  projectId: "ananmanan-investors",
+  storageBucket: "ananmanan-investors.firebasestorage.app",
+  messagingSenderId: "655866980123",
+  appId: "1:655866980123:web:968a3df00738f2aaff55be",
+  measurementId: "G-G0NVR21R7P"
+};
+const fbApp = initializeApp(firebaseConfig);
+/* Same fix as admin.html: this project's Firestore database is named
+   "default", not the auto-created "(default)". Must pass it explicitly or
+   every listener/read here silently points at a database that doesn't
+   exist from the client's perspective. Match this to whatever your
+   Firebase Console database ID actually is. */
+const fs = getFirestore(fbApp, "default");
+
+function fmt(n){ return 'LKR ' + Number(n||0).toLocaleString('en-LK', {maximumFractionDigits:0}); }
+
+let db = { investors:[], products:[], investments:[] };
+let readyFlags = { investors:false, products:false, investments:false };
+let currentInvestor = null;
+let pendingLoginCheck = false;
+
+function snapshotAll(){
+  onSnapshot(collection(fs,'investors'), snap=>{
+    db.investors = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    readyFlags.investors = true;
+    onDataChanged();
+  }, err=>console.error('investors listener error', err));
+
+  onSnapshot(collection(fs,'products'), snap=>{
+    db.products = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    readyFlags.products = true;
+    onDataChanged();
+  }, err=>console.error('products listener error', err));
+
+  onSnapshot(collection(fs,'investments'), snap=>{
+    db.investments = snap.docs.map(d=>({ id:d.id, ...d.data() }));
+    readyFlags.investments = true;
+    onDataChanged();
+  }, err=>console.error('investments listener error', err));
+}
+
+function onDataChanged(){
+  if(!(readyFlags.investors && readyFlags.products && readyFlags.investments)) return;
+  if(pendingLoginCheck){ pendingLoginCheck = false; resumeSession(); }
+  if(currentInvestor){
+    // keep currentInvestor object fresh in case admin edited their details
+    const fresh = db.investors.find(i=>i.id===currentInvestor.id);
+    if(fresh) currentInvestor = fresh;
+    renderAll();
+  }
+}
+
+/* ================= DERIVED HELPERS (mirrors admin.html logic) ================= */
+function productFunded(productId){
+  return db.investments.filter(i=>i.productId===productId).reduce((s,i)=>s+Number(i.amount||0),0);
+}
+function investorTotalInvested(investorId){
+  return db.investments.filter(i=>i.investorId===investorId).reduce((s,i)=>s+Number(i.amount||0),0);
+}
+function investmentProfit(inv){
+  const p = db.products.find(pr=>pr.id===inv.productId);
+  if(!p || p.status!=='sold') return null;
+  return Number(inv.qty||0) * Number(inv.profitMarginPerQty||0);
+}
+function investmentReturn(inv){
+  const profit = investmentProfit(inv);
+  if(profit===null) return null;
+  return Number(inv.amount||0) + profit;
+}
+function investorRealizedProfit(investorId){
+  let profit = 0;
+  db.investments.filter(i=>i.investorId===investorId).forEach(inv=>{
+    const p = investmentProfit(inv);
+    if(p!==null) profit += p;
+  });
+  return profit;
+}
+
+/* ================= AUTH ================= */
+function tryLogin(){
+  const idVal = document.getElementById('loginId').value.trim();
+  const passVal = document.getElementById('loginPass').value.trim();
+  const investor = db.investors.find(i=>i.idNo===idVal);
+  if(!investor){
+    document.getElementById('loginErr').textContent = 'Investor ID not found. Contact ANANMANAN to be registered.';
+    return;
+  }
+  const expectedPass = investor.idNo.replace(/\D/g,'').slice(-5) || investor.idNo.slice(-5);
+  if(passVal !== expectedPass){
+    document.getElementById('loginErr').textContent = 'Incorrect password.';
+    return;
+  }
+  currentInvestor = investor;
+  sessionStorage.setItem('am_investor_id', investor.id);
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('app').style.display='block';
+  renderAll();
+}
+function logout(){
+  sessionStorage.removeItem('am_investor_id');
+  location.reload();
+}
+function resumeSession(){
+  const savedId = sessionStorage.getItem('am_investor_id');
+  if(!savedId) return;
+  const investor = db.investors.find(i=>i.id===savedId);
+  if(investor){
+    currentInvestor = investor;
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('app').style.display='block';
+    renderAll();
+  }
+}
+window.addEventListener('DOMContentLoaded', ()=>{
+  pendingLoginCheck = true;
+  snapshotAll();
+  document.getElementById('loginPass').addEventListener('keydown', e=>{ if(e.key==='Enter') tryLogin(); });
+});
+
+function renderTicker(){
+  const track = document.getElementById('tickerTrack');
+  if(db.products.length===0){
+    track.innerHTML = `<span>NO PRODUCTS LISTED YET</span>`;
+    return;
+  }
+  track.innerHTML = db.products.map(p=>{
+    const funded = productFunded(p.id);
+    const totalCost = p.qty*p.unitCost;
+    if(p.status==='sold'){
+      const profit = p.saleAmount - totalCost;
+      const pct = totalCost>0 ? ((profit/totalCost)*100).toFixed(1) : '0.0';
+      return `<span>${p.name} <b class="tick-up">SOLD ${pct>=0?'+':''}${pct}%</b></span>`;
+    } else {
+      const pct = totalCost>0 ? ((funded/totalCost)*100).toFixed(0) : 0;
+      return `<span>${p.name} <b class="tick-pending">OPEN · ${pct}% FUNDED</b></span>`;
+    }
+  }).join('');
+}
+
+function renderAll(){
+  if(!currentInvestor) return;
+  renderTicker();
+
+  const invested = investorTotalInvested(currentInvestor.id);
+  const profit = investorRealizedProfit(currentInvestor.id);
+  const roi = invested>0 ? (profit/invested)*100 : 0;
+  const myInvestments = db.investments.filter(i=>i.investorId===currentInvestor.id);
+  const activeCount = myInvestments.filter(inv=>{
+    const p = db.products.find(pr=>pr.id===inv.productId);
+    return p && p.status==='open';
+  }).length;
+
+  document.getElementById('meName').textContent = currentInvestor.fullName;
+  document.getElementById('meId').textContent = currentInvestor.idNo;
+  document.getElementById('meMeta').textContent = `Birthday: ${currentInvestor.birthday||'—'}  ·  Investor since ${currentInvestor.joinDate||'—'}`;
+
+  const ranked = db.investors.map(i=>({ id:i.id, profit: investorRealizedProfit(i.id) })).sort((a,b)=>b.profit-a.profit);
+  const myRank = ranked.findIndex(r=>r.id===currentInvestor.id) + 1;
+  document.getElementById('meRank').textContent = myRank>0 ? '#'+myRank : '—';
+
+  document.getElementById('statInvested').textContent = fmt(invested);
+  document.getElementById('statProfit').innerHTML = `<span style="color:${profit>=0?'var(--green)':'var(--red)'}">${fmt(profit)}</span>`;
+  document.getElementById('statRoi').innerHTML = `<span style="color:${roi>=0?'var(--green)':'var(--red)'}">${roi.toFixed(1)}%</span>`;
+  document.getElementById('statActive').textContent = activeCount;
+
+  const body = document.getElementById('myInvestmentsBody');
+  body.innerHTML = myInvestments.length ? myInvestments.map(inv=>{
+    const p = db.products.find(pr=>pr.id===inv.productId);
+    if(!p) return '';
+    const ret = investmentReturn(inv);
+    const prof = investmentProfit(inv);
+    const totalCost = p.qty*p.unitCost;
+    const funded = productFunded(p.id);
+    const pct = totalCost>0 ? Math.min(100,(funded/totalCost)*100) : 0;
+    return `<tr>
+      <td>${p.name}<div class="mono muted" style="font-size:10.5px;">${inv.qty} units · margin ${fmt(inv.profitMarginPerQty)}/unit</div>${p.status==='open' ? `<div class="progress" style="width:120px;"><div class="progress-bar" style="width:${pct}%"></div></div>` : ''}</td>
+      <td class="mono">${fmt(inv.amount)}</td>
+      <td>${p.status==='sold' ? '<span class="badge badge-sold">Sold</span>' : '<span class="badge badge-open">Active</span>'}</td>
+      <td class="mono">${ret!==null ? fmt(ret) : '—'}</td>
+      <td class="mono" style="color:${prof===null?'var(--muted)':(prof>=0?'var(--green)':'var(--red)')}">${prof!==null ? fmt(prof) : 'Pending'}</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty">You have no investments yet. Reach out to ANANMANAN to get allocated into a product.</td></tr>`;
+
+  const lbBody = document.getElementById('leaderboardBody');
+  const fullRanked = db.investors.map(i=>{
+    const inv = investorTotalInvested(i.id);
+    const prof = investorRealizedProfit(i.id);
+    const r = inv>0 ? (prof/inv)*100 : 0;
+    return {i, inv, prof, r};
+  }).sort((a,b)=>b.prof-a.prof);
+  lbBody.innerHTML = fullRanked.length ? fullRanked.map((r,idx)=>{
+    const rankClass = idx===0?'rank-1':idx===1?'rank-2':idx===2?'rank-3':'rank-n';
+    const isYou = r.i.id===currentInvestor.id;
+    return `<tr class="${isYou?'you':''}">
+      <td><div class="rank-badge ${rankClass}">${idx+1}</div></td>
+      <td>${r.i.fullName}${isYou?' <span class="mono" style="color:var(--green);font-size:10.5px;">(you)</span>':''}</td>
+      <td class="mono">${fmt(r.inv)}</td>
+      <td class="mono" style="color:${r.prof>=0?'var(--green)':'var(--red)'}">${fmt(r.prof)}</td>
+      <td class="mono" style="color:${r.r>=0?'var(--green)':'var(--red)'}">${r.r.toFixed(1)}%</td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="5" class="empty">No investors yet.</td></tr>`;
+}
+
+Object.assign(window, { tryLogin, logout });
+</script>
+</body>
+</html>
